@@ -11,6 +11,7 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.metric.MetricRegistry;
+import org.apache.ignite.cluster.ClusterState;
 
 import java.io.File;
 import java.io.Serializable;
@@ -26,7 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CdcTester {
 
     private Ignite ignite;
-    public TestCdcConsumer cdcConsumer;
     private final String storagePath = Paths.get("").toAbsolutePath() + "/ignite-storage";
 
     public static void main(String[] args) throws Exception {
@@ -54,7 +54,7 @@ public class CdcTester {
             testMultipleEvents();
 
             System.out.println("=== CDC Test Completed Successfully ===");
-            System.out.println("Total events captured: " + cdcConsumer.getEventCount());
+            System.out.println("Total events captured: " + TestCdcConsumer.getEventCount());
 
         } finally {
             shutdown();
@@ -79,9 +79,6 @@ public class CdcTester {
                 .setWalPath(storagePath + "/wal")
                 .setWalArchivePath(storagePath + "/wal-archive");
 
-        // Создаем CDC consumer
-        cdcConsumer = new TestCdcConsumer();
-
         // Общая конфигурация Ignite
         IgniteConfiguration config = new IgniteConfiguration()
                 .setIgniteInstanceName("cdc-test-instance")
@@ -90,8 +87,8 @@ public class CdcTester {
 
         ignite = Ignition.start(config);
 
-        // Запускаем CDC consumer вручную
-        cdcConsumer.start(null); // Передаем null, так как MetricRegistry не используется в тестах
+        // АКТИВИРУЕМ КЛАСТЕР - это важно при использовании persistence
+        ignite.cluster().state(ClusterState.ACTIVE);
 
         System.out.println("Ignite started successfully with CDC");
     }
@@ -106,7 +103,7 @@ public class CdcTester {
         IgniteCache<Integer, String> cache = ignite.getOrCreateCache(cacheConfig);
 
         // Сбрасываем счетчик событий
-        cdcConsumer.resetCounter();
+        TestCdcConsumer.resetCounter();
 
         // Производим операции
         cache.put(1, "Value1");
@@ -114,22 +111,22 @@ public class CdcTester {
         cache.put(3, "Value3");
 
         // Даем время на обработку CDC
-        Thread.sleep(1000);
+        Thread.sleep(3000);
 
-        System.out.println("After PUT operations: " + cdcConsumer.getEventCount() + " events");
+        System.out.println("After PUT operations: " + TestCdcConsumer.getEventCount() + " events");
 
         // Обновляем значение
         cache.put(1, "UpdatedValue1");
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
         // Удаляем значение
         cache.remove(2);
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
-        System.out.println("After UPDATE/REMOVE operations: " + cdcConsumer.getEventCount() + " events");
+        System.out.println("After UPDATE/REMOVE operations: " + TestCdcConsumer.getEventCount() + " events");
 
         // Проверяем, что события были捕获
-        if (cdcConsumer.getEventCount() >= 4) {
+        if (TestCdcConsumer.getEventCount() >= 4) {
             System.out.println("✓ Basic operations test PASSED");
         } else {
             System.out.println("✗ Basic operations test FAILED");
@@ -144,7 +141,7 @@ public class CdcTester {
 
         IgniteCache<String, User> userCache = ignite.getOrCreateCache(userCacheConfig);
 
-        cdcConsumer.resetCounter();
+        TestCdcConsumer.resetCounter();
 
         // Создаем пользователей
         User user1 = new User("John", "Doe", 30);
@@ -152,20 +149,20 @@ public class CdcTester {
 
         userCache.put("user1", user1);
         userCache.put("user2", user2);
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
         // Обновляем пользователя
         user1.setAge(31);
         userCache.put("user1", user1);
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
         // Удаляем пользователя
         userCache.remove("user2");
-        Thread.sleep(500);
+        Thread.sleep(1000);
 
-        System.out.println("User operations: " + cdcConsumer.getEventCount() + " events");
+        System.out.println("User operations: " + TestCdcConsumer.getEventCount() + " events");
 
-        if (cdcConsumer.getEventCount() >= 4) {
+        if (TestCdcConsumer.getEventCount() >= 4) {
             System.out.println("✓ Different operations test PASSED");
         } else {
             System.out.println("✗ Different operations test FAILED");
@@ -183,14 +180,14 @@ public class CdcTester {
         final int eventCount = 50;
         CountDownLatch latch = new CountDownLatch(eventCount);
 
-        cdcConsumer.resetCounter();
-        cdcConsumer.setExpectedLatch(latch);
+        TestCdcConsumer.resetCounter();
+        TestCdcConsumer.setExpectedLatch(latch);
 
         // Генерируем много событий
         for (int i = 0; i < eventCount; i++) {
             massCache.put(i, "MassValue_" + i);
             if (i % 10 == 0) {
-                Thread.sleep(10); // Небольшая пауза
+                Thread.sleep(50); // Небольшая пауза
             }
         }
 
@@ -205,7 +202,7 @@ public class CdcTester {
         }
 
         // Сбрасываем защелку
-        cdcConsumer.setExpectedLatch(null);
+        TestCdcConsumer.setExpectedLatch(null);
     }
 
     private void cleanupStorage() {
@@ -232,9 +229,6 @@ public class CdcTester {
     }
 
     public void shutdown() {
-        if (cdcConsumer != null) {
-            cdcConsumer.stop();
-        }
         if (ignite != null) {
             ignite.close();
         }
@@ -245,14 +239,14 @@ public class CdcTester {
      * Test CDC Consumer для захвата событий
      */
     public static class TestCdcConsumer implements CdcConsumer {
-        private final AtomicInteger eventCounter = new AtomicInteger(0);
-        private CountDownLatch expectedLatch;
+        private static final AtomicInteger eventCounter = new AtomicInteger(0);
+        private static CountDownLatch expectedLatch;
 
-        public void setExpectedLatch(CountDownLatch latch) {
-            this.expectedLatch = latch;
+        public static void setExpectedLatch(CountDownLatch latch) {
+            expectedLatch = latch;
         }
 
-        public void resetCounter() {
+        public static void resetCounter() {
             eventCounter.set(0);
         }
 
@@ -279,7 +273,7 @@ public class CdcTester {
             return true;
         }
 
-        public int getEventCount() {
+        public static int getEventCount() {
             return eventCounter.get();
         }
 
