@@ -1,6 +1,5 @@
-package org.apache.ignite;
+package org.apache.ignite.cdc;
 
-import org.apache.ignite.cdc.CdcTester;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,10 +33,6 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
-        // Запускаем CDC Consumer вручную (в реальном сценарии он запускался бы через CdcMain)
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
-
         // Тестируем базовые операции
         cdcTester.testBasicOperations();
 
@@ -49,10 +44,6 @@ public class CdcTesterTest {
     public void testDifferentOperations() throws Exception {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
-
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
 
         // Тестируем различные операции
         cdcTester.testDifferentOperations();
@@ -66,15 +57,11 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
-
         // Тестируем множественные события
         cdcTester.testMultipleEvents();
 
         // Проверяем, что все события были捕获
-        assertTrue("Должно быть все 50 событий", CdcTester.TestCdcConsumer.getEventCount() >= 50);
+        assertTrue("Должно быть捕获 все 50 событий", CdcTester.TestCdcConsumer.getEventCount() >= 50);
     }
 
     @Test
@@ -86,10 +73,6 @@ public class CdcTesterTest {
 
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
-
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
 
         // Создаем кэш и производим операции
         cdcTester.testBasicOperations();

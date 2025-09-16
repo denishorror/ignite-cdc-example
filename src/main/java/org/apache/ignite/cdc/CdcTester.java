@@ -74,11 +74,16 @@ public class CdcTester {
                 .setWalPath(storagePath + "/wal")
                 .setWalArchivePath(storagePath + "/wal-archive");
 
-        // Общая конфигурация Ignite
+        // Общая конфигурация Ignite - ОТКЛЮЧАЕМ SQL ФУНКЦИОНАЛЬНОСТЬ
         IgniteConfiguration config = new IgniteConfiguration()
                 .setIgniteInstanceName("cdc-test-instance")
                 .setDataStorageConfiguration(storageConfig)
-                .setWorkDirectory(storagePath);
+                .setWorkDirectory(storagePath)
+                .setPeerClassLoadingEnabled(false); // Отключаем загрузку классов по сети
+
+        // Отключаем SQL функциональность
+        System.setProperty("IGNITE_QUIET", "false");
+        System.setProperty("java.net.preferIPv4Stack", "true");
 
         ignite = Ignition.start(config);
 
