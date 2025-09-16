@@ -29,11 +29,6 @@ public class CdcTester {
     private Ignite ignite;
     private final String storagePath = Paths.get("").toAbsolutePath() + "/ignite-storage";
 
-    public static void main(String[] args) throws Exception {
-        CdcTester tester = new CdcTester();
-        tester.runTest();
-    }
-
     public void runTest() throws Exception {
         try {
             System.out.println("=== Starting CDC Test ===");
@@ -169,7 +164,7 @@ public class CdcTester {
         }
     }
 
-    private void testMultipleEvents() throws Exception {
+    public void testMultipleEvents() throws Exception {
         System.out.println("\n--- Testing Multiple Events ---");
 
         CacheConfiguration<Integer, String> massCacheConfig = new CacheConfiguration<Integer, String>()
