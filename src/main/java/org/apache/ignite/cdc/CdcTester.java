@@ -4,14 +4,12 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryType;
-import org.apache.ignite.cdc.CdcConsumer;
-import org.apache.ignite.cdc.CdcEvent;
+import org.apache.ignite.cluster.ClusterState;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.metric.MetricRegistry;
-import org.apache.ignite.cluster.ClusterState;
 
 import java.io.File;
 import java.io.Serializable;
@@ -48,6 +46,10 @@ public class CdcTester {
 
             // Запускаем Ignite с CDC
             startIgniteWithCdc();
+
+            // Ждем некоторое время для запуска CDC Consumer вручную
+            System.out.println("Please start CDC Consumer manually within 10 seconds...");
+            Thread.sleep(10000);
 
             // Создаем кэш и производим операции
             testBasicOperations();
@@ -134,7 +136,7 @@ public class CdcTester {
         if (TestCdcConsumer.getEventCount() >= 4) {
             System.out.println("✓ Basic operations test PASSED");
         } else {
-            System.out.println("✗ Basic operations test FAILED");
+            System.out.println("✗ Basic operations test FAILED - Expected 4 events, got " + TestCdcConsumer.getEventCount());
         }
     }
 
@@ -170,7 +172,7 @@ public class CdcTester {
         if (TestCdcConsumer.getEventCount() >= 4) {
             System.out.println("✓ Different operations test PASSED");
         } else {
-            System.out.println("✗ Different operations test FAILED");
+            System.out.println("✗ Different operations test FAILED - Expected 4 events, got " + TestCdcConsumer.getEventCount());
         }
     }
 
@@ -262,9 +264,11 @@ public class CdcTester {
 
         @Override
         public boolean onEvents(Iterator<CdcEvent> iterator) {
+            int processed = 0;
             while (iterator.hasNext()) {
                 CdcEvent event = iterator.next();
                 int count = eventCounter.incrementAndGet();
+                processed++;
 
                 System.out.printf("CDC Event #%d: cacheId=%d, key=%s%n",
                         count, event.cacheId(), event.key());
@@ -275,6 +279,7 @@ public class CdcTester {
                     expectedLatch.countDown();
                 }
             }
+            System.out.println("Processed " + processed + " events in this batch");
             return true;
         }
 
@@ -326,14 +331,29 @@ public class CdcTester {
         }
 
         // Getters and setters
-        public String getFirstName() { return firstName; }
-        public void setFirstName(String firstName) { this.firstName = firstName; }
+        public String getFirstName() {
+            return firstName;
+        }
 
-        public String getLastName() { return lastName; }
-        public void setLastName(String lastName) { this.lastName = lastName; }
+        public void setFirstName(String firstName) {
+            this.firstName = firstName;
+        }
 
-        public int getAge() { return age; }
-        public void setAge(int age) { this.age = age; }
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public void setAge(int age) {
+            this.age = age;
+        }
 
         @Override
         public String toString() {

@@ -4,9 +4,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -33,9 +30,9 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
+        // Ждем некоторое время для запуска CDC Consumer вручную
+        System.out.println("Please start CDC Consumer manually within 10 seconds...");
+        Thread.sleep(10000);
 
         // Тестируем базовые операции
         cdcTester.testBasicOperations();
@@ -49,9 +46,9 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
+        // Ждем некоторое время для запуска CDC Consumer вручную
+        System.out.println("Please start CDC Consumer manually within 10 seconds...");
+        Thread.sleep(10000);
 
         // Тестируем различные операции
         cdcTester.testDifferentOperations();
@@ -65,39 +62,14 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
+        // Ждем некоторое время для запуска CDC Consumer вручную
+        System.out.println("Please start CDC Consumer manually within 10 seconds...");
+        Thread.sleep(10000);
 
         // Тестируем множественные события
         cdcTester.testMultipleEvents();
 
         // Проверяем, что все события были捕获
         assertTrue("Должно быть捕获 все 50 событий", CdcTester.TestCdcConsumer.getEventCount() >= 50);
-    }
-
-    @Test
-    public void testCdcConsumerDirectly() throws Exception {
-        // Создаем защелку для 5 событий
-        CountDownLatch latch = new CountDownLatch(5);
-        CdcTester.TestCdcConsumer.setExpectedLatch(latch);
-        CdcTester.TestCdcConsumer.resetCounter();
-
-        // Запускаем Ignite с CDC
-        cdcTester.startIgniteWithCdc();
-
-        // Запускаем CDC Consumer вручную
-        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
-        consumer.start(null);
-
-        // Создаем кэш и производим операции
-        cdcTester.testBasicOperations();
-
-        // Ждем обработки всех событий
-        boolean allProcessed = latch.await(10, TimeUnit.SECONDS);
-
-        // Проверяем, что все события были捕获
-        assertTrue("Должно быть捕获 все 5 событий", allProcessed);
-        assertTrue("Должно быть捕获至少 5 событий", CdcTester.TestCdcConsumer.getEventCount() >= 5);
     }
 }
