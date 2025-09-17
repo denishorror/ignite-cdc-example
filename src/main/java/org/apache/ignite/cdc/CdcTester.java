@@ -29,6 +29,16 @@ public class CdcTester {
     private Ignite ignite;
     private final String storagePath = Paths.get("").toAbsolutePath() + "/ignite-storage";
 
+    public static void main(String[] args) throws Exception {
+        CdcTester tester = new CdcTester();
+        if (args.length > 0 && "runTest".equals(args[0])) {
+            tester.runTest();
+        } else {
+            System.out.println("Для запуска теста используйте: CdcTester runTest");
+            System.out.println("Для запуска CDC Consumer используйте: CdcConsumerRunner");
+        }
+    }
+
     public void runTest() throws Exception {
         try {
             System.out.println("=== Starting CDC Test ===");
@@ -74,16 +84,11 @@ public class CdcTester {
                 .setWalPath(storagePath + "/wal")
                 .setWalArchivePath(storagePath + "/wal-archive");
 
-        // Общая конфигурация Ignite - ОТКЛЮЧАЕМ SQL ФУНКЦИОНАЛЬНОСТЬ
+        // Общая конфигурация Ignite
         IgniteConfiguration config = new IgniteConfiguration()
                 .setIgniteInstanceName("cdc-test-instance")
                 .setDataStorageConfiguration(storageConfig)
-                .setWorkDirectory(storagePath)
-                .setPeerClassLoadingEnabled(false); // Отключаем загрузку классов по сети
-
-        // Отключаем SQL функциональность
-        System.setProperty("IGNITE_QUIET", "false");
-        System.setProperty("java.net.preferIPv4Stack", "true");
+                .setWorkDirectory(storagePath);
 
         ignite = Ignition.start(config);
 

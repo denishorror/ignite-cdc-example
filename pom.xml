@@ -6,12 +6,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.apache.ignite</groupId>
-    <artifactId>ignite-cdc-spring-example</artifactId>
+    <artifactId>ignite-cdc-test</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Ignite CDC Spring Example</name>
-    <description>Apache Ignite 2.17.0 CDC example with Spring Framework</description>
+    <name>Ignite CDC Test</name>
+    <description>Apache Ignite 2.17.0 CDC test project</description>
     <url>https://ignite.apache.org</url>
 
     <properties>
@@ -21,24 +21,12 @@
         <maven.compiler.target>17</maven.compiler.target>
 
         <ignite.version>2.17.0</ignite.version>
-        <spring-boot.version>3.2.2</spring-boot.version>
+        <junit.version>4.13.2</junit.version>
         <log4j2.version>2.20.0</log4j2.version>
         <h2.version>1.4.199</h2.version>
         <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
         <maven.surefire.plugin.version>3.0.0-M9</maven.surefire.plugin.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <!-- H2 Database - правильная версия для Ignite 2.17.0 -->
@@ -62,7 +50,6 @@
                     <groupId>log4j</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
-                <!-- Исключаем старую версию H2, если она есть в Ignite -->
                 <exclusion>
                     <groupId>com.h2database</groupId>
                     <artifactId>h2</artifactId>
@@ -87,49 +74,11 @@
             <version>${log4j2.version}</version>
         </dependency>
 
-        <!-- Spring Boot -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-                <!-- Исключаем H2 из Spring Boot, если он есть -->
-                <exclusion>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-log4j2</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-logging</artifactId>
-                </exclusion>
-                <!-- Исключаем H2 из Spring Boot Test, если он есть -->
-                <exclusion>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
         <!-- JUnit -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -164,6 +113,14 @@
                         --add-opens=java.base/java.util.concurrent.locks=ALL-UNNAMED
                         -Xms512m -Xmx512m
                     </argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <configuration>
+                    <mainClass>org.apache.ignite.cdc.CdcTester</mainClass>
                 </configuration>
             </plugin>
         </plugins>

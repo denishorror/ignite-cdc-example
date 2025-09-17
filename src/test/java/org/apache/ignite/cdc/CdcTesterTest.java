@@ -33,11 +33,15 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
+        // Запускаем CDC Consumer вручную
+        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
+        consumer.start(null);
+
         // Тестируем базовые операции
         cdcTester.testBasicOperations();
 
         // Проверяем, что события были捕获
-        assertTrue("Должно быть 4 события", CdcTester.TestCdcConsumer.getEventCount() >= 4);
+        assertTrue("Должно быть捕获至少 4 события", CdcTester.TestCdcConsumer.getEventCount() >= 4);
     }
 
     @Test
@@ -45,17 +49,25 @@ public class CdcTesterTest {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
 
+        // Запускаем CDC Consumer вручную
+        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
+        consumer.start(null);
+
         // Тестируем различные операции
         cdcTester.testDifferentOperations();
 
         // Проверяем, что события были捕获
-        assertTrue("Должно быть 4 события", CdcTester.TestCdcConsumer.getEventCount() >= 4);
+        assertTrue("Должно быть捕获至少 4 события", CdcTester.TestCdcConsumer.getEventCount() >= 4);
     }
 
     @Test
     public void testMultipleEvents() throws Exception {
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
+
+        // Запускаем CDC Consumer вручную
+        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
+        consumer.start(null);
 
         // Тестируем множественные события
         cdcTester.testMultipleEvents();
@@ -73,6 +85,10 @@ public class CdcTesterTest {
 
         // Запускаем Ignite с CDC
         cdcTester.startIgniteWithCdc();
+
+        // Запускаем CDC Consumer вручную
+        CdcTester.TestCdcConsumer consumer = new CdcTester.TestCdcConsumer();
+        consumer.start(null);
 
         // Создаем кэш и производим операции
         cdcTester.testBasicOperations();
