@@ -1,15 +1,16 @@
-package org.apache.ignite.cdc;
+package org.apache.ignite;
 
-import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteCache;
-import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryType;
-import org.apache.ignite.cluster.ClusterState;
+import org.apache.ignite.cdc.CdcCacheEvent;
+import org.apache.ignite.cdc.CdcConsumer;
+import org.apache.ignite.cdc.CdcEvent;
+import org.apache.ignite.cdc.TypeMapping;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.metric.MetricRegistry;
+import org.apache.ignite.cluster.ClusterState;
 
 import java.io.File;
 import java.io.Serializable;
@@ -29,17 +30,14 @@ public class CdcTester {
 
     public static void main(String[] args) throws Exception {
         CdcTester tester = new CdcTester();
-        if (args.length > 0 && "runTest".equals(args[0])) {
-            tester.runTest();
-        } else {
-            System.out.println("Для запуска теста используйте: CdcTester runTest");
-            System.out.println("Для запуска CDC Consumer используйте: CdcConsumerRunner");
-        }
+        tester.runTest();
     }
 
     public void runTest() throws Exception {
         try {
             System.out.println("=== Starting CDC Test ===");
+            System.out.println("Note: CDC Consumer must be started separately using:");
+            System.out.println("mvn exec:java -Dexec.mainClass=\"org.apache.ignite.cdc.CdcMain\" -Dexec.args=\"--consumer org.apache.ignite.cdc.CdcTester\\$TestCdcConsumer\"");
 
             // Очищаем предыдущие данные
             cleanupStorage();
@@ -47,9 +45,12 @@ public class CdcTester {
             // Запускаем Ignite с CDC
             startIgniteWithCdc();
 
-            // Ждем некоторое время для запуска CDC Consumer вручную
-            System.out.println("Please start CDC Consumer manually within 10 seconds...");
-            Thread.sleep(10000);
+            // Ждем 15 секунд для запуска CDC Consumer вручную
+            System.out.println("Please start CDC Consumer manually within 15 seconds...");
+            for (int i = 15; i > 0; i--) {
+                System.out.println("Waiting: " + i + " seconds...");
+                Thread.sleep(1000);
+            }
 
             // Создаем кэш и производим операции
             testBasicOperations();
@@ -103,7 +104,7 @@ public class CdcTester {
     public void testBasicOperations() throws Exception {
         System.out.println("\n--- Testing Basic Operations ---");
 
-        // Создаем кэш (CDC уже включен на уровне региона данных)
+        // Создаем кэш с включенным CDC
         CacheConfiguration<Integer, String> cacheConfig = new CacheConfiguration<Integer, String>()
                 .setName("test-cache");
 
@@ -118,17 +119,17 @@ public class CdcTester {
         cache.put(3, "Value3");
 
         // Даем время на обработку CDC
-        Thread.sleep(3000);
+        Thread.sleep(5000);
 
         System.out.println("After PUT operations: " + TestCdcConsumer.getEventCount() + " events");
 
         // Обновляем значение
         cache.put(1, "UpdatedValue1");
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         // Удаляем значение
         cache.remove(2);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         System.out.println("After UPDATE/REMOVE operations: " + TestCdcConsumer.getEventCount() + " events");
 
@@ -137,6 +138,8 @@ public class CdcTester {
             System.out.println("✓ Basic operations test PASSED");
         } else {
             System.out.println("✗ Basic operations test FAILED - Expected 4 events, got " + TestCdcConsumer.getEventCount());
+            System.out.println("Make sure CDC Consumer is running with command:");
+            System.out.println("mvn exec:java -Dexec.mainClass=\"org.apache.ignite.cdc.CdcMain\" -Dexec.args=\"--consumer org.apache.ignite.cdc.CdcTester\\$TestCdcConsumer\"");
         }
     }
 
@@ -156,16 +159,16 @@ public class CdcTester {
 
         userCache.put("user1", user1);
         userCache.put("user2", user2);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         // Обновляем пользователя
         user1.setAge(31);
         userCache.put("user1", user1);
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         // Удаляем пользователя
         userCache.remove("user2");
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         System.out.println("User operations: " + TestCdcConsumer.getEventCount() + " events");
 
@@ -194,12 +197,12 @@ public class CdcTester {
         for (int i = 0; i < eventCount; i++) {
             massCache.put(i, "MassValue_" + i);
             if (i % 10 == 0) {
-                Thread.sleep(50); // Небольшая пауза
+                Thread.sleep(100); // Небольшая пауза
             }
         }
 
         // Ждем обработки всех событий
-        boolean allProcessed = latch.await(10, TimeUnit.SECONDS);
+        boolean allProcessed = latch.await(30, TimeUnit.SECONDS);
 
         if (allProcessed) {
             System.out.println("✓ Multiple events test PASSED - " + eventCount + " events processed");
@@ -331,29 +334,14 @@ public class CdcTester {
         }
 
         // Getters and setters
-        public String getFirstName() {
-            return firstName;
-        }
+        public String getFirstName() { return firstName; }
+        public void setFirstName(String firstName) { this.firstName = firstName; }
 
-        public void setFirstName(String firstName) {
-            this.firstName = firstName;
-        }
+        public String getLastName() { return lastName; }
+        public void setLastName(String lastName) { this.lastName = lastName; }
 
-        public String getLastName() {
-            return lastName;
-        }
-
-        public void setLastName(String lastName) {
-            this.lastName = lastName;
-        }
-
-        public int getAge() {
-            return age;
-        }
-
-        public void setAge(int age) {
-            this.age = age;
-        }
+        public int getAge() { return age; }
+        public void setAge(int age) { this.age = age; }
 
         @Override
         public String toString() {

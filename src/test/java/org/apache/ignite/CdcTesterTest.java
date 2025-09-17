@@ -1,4 +1,4 @@
-package org.apache.ignite.cdc;
+package org.apache.ignite;
 
 import org.junit.After;
 import org.junit.Before;

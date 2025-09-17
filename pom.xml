@@ -120,7 +120,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <mainClass>org.apache.ignite.cdc.CdcTester</mainClass>
+                    <mainClass>org.apache.ignite.CdcTester</mainClass>
                 </configuration>
             </plugin>
         </plugins>

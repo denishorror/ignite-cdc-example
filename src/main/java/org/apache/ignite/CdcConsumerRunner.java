@@ -1,6 +1,6 @@
-package org.apache.ignite.cdc;
+package org.apache.ignite;
 
-import org.apache.ignite.cdc.CdcTester.TestCdcConsumer;
+import org.apache.ignite.CdcTester.TestCdcConsumer;
 
 /**
  * Runner для запуска CDC Consumer в отдельном процессе
